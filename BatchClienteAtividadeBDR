@@ -1,0 +1,62 @@
+global class BatchClienteAtividadeBDR implements Database.Batchable<sObject>, Database.Stateful, Schedulable  {
+	
+    String query;
+    List<Opportunity> listOpp;
+    List<Account> listAcc;
+	
+	global BatchClienteAtividadeBDR() {
+		listOpp = new List<Opportunity>();
+        listAcc = new List<Account>();
+	}
+	
+	global Database.QueryLocator start(Database.BatchableContext BC) {
+		query = 'SELECT Id, Name, BDR__c, Conta_Aberta_por_BDR__c, (SELECT ID, Name, CreatedById, CloseDate, Cliente_Novo__c FROM Opportunities WHERE isWon = true AND CloseDate < TODAY ORDER BY CLoseDate ASC LIMIT 1) FROM Account WHERE Conta_Aberta_por_BDR__c = false AND Classificacao_Cliente__c != \'Sem Consumo\' AND Classificacao_Cliente__c != null';
+		return Database.getQueryLocator(query);
+	}
+
+   	global void execute(Database.BatchableContext BC, List<sObject> scope) {
+        listAcc = (List<Account>) scope;
+        List<Account> listUpdateAccount = new List<Account>();
+    try{
+        for(Account acc : listAcc){
+            if(acc.Opportunities != null && acc.Opportunities.size() > 0){
+                
+                listOpp = acc.Opportunities;
+                map<id, User> mapUsers = new map<id, User>();
+                for(User user : [SELECT Id, Area_de_Atuacao__c FROM User WHERE isActive = true]){
+                    mapUsers.put(user.Id, user);
+                }
+                for(Opportunity opp : listOpp){
+                    if( mapUsers.get(opp.CreatedById) != null && mapUsers.get(opp.CreatedById).Area_de_Atuacao__c == 'BDR' ){
+                        acc.Conta_Aberta_por_BDR__c = true;
+                        acc.BDR__c = opp.CreatedById;
+                        listUpdateAccount.add( acc );
+                    }      
+                }
+            }
+        }
+        } catch (Exception ex ) {
+          System.debug(ex.getCause());
+          System.debug(ex.getMessage());
+          System.debug(ex.getLineNumber());
+        }
+
+        if(listUpdateAccount != null && listUpdateAccount.size() > 0){
+            TriggerHandlerConta.ignoreTrigger = true;
+            Toolkit.ignoraRegraValidacao( TRUE );
+            Database.update(listUpdateAccount, false);
+            TriggerHandlerConta.ignoreTrigger = false;
+            Toolkit.ignoraRegraValidacao( FALSE );
+        }
+        
+	}
+	
+	global void finish(Database.BatchableContext BC) {
+
+	}
+
+    global void execute(SchedulableContext sc) {
+		Database.executeBatch( new BatchClienteAtividadeBDR(), 50 );
+	}  
+
+}
