@@ -1,0 +1,10 @@
+trigger TriggerLead on Lead (before insert, before update) {
+
+    if(Trigger.isBefore && Trigger.isUpdate){
+        TriggerHandlerLead.validarOrigemLP(Trigger.new, Trigger.old);
+    } 
+    else if(Trigger.isBefore && Trigger.isInsert){
+        TriggerHandlerLead.atribuicaoLeadBDR(Trigger.new);
+        
+    }
+}
