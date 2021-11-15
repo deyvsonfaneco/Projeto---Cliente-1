@@ -1,0 +1,196 @@
+public without sharing class TriggerHandlerConta {
+    
+    
+    public static Boolean ignoreTrigger {get;set;}
+
+	private TriggerHandlerConta() {  }
+
+    public static void blockVendedorAtualizar(List<Account> listAcc){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            Account newAcc = listAcc[0];
+            Map<Id, User> mapUsers = new Map<Id, User>();
+			for(User users : [SELECT Id, FirstName, LastName, Area_de_Atuacao__c, IsAdmin__c FROM User WHERE isActive = true 
+																										AND Area_de_Atuacao__c = 'Vendedor'
+																										AND IsAdmin__c = false]){
+			 mapUsers.put(users.Id, users);
+			}
+            if(mapUsers.get(UserInfo.getUserId()) != null && mapUsers.get( UserInfo.getUserId() ).Area_de_Atuacao__c == 'Vendedor'){
+                if(newAcc.OwnerId != UserInfo.getUserId()){
+                    newAcc.addError('[ERRO] Você não tem permissão para atuar em conta que não faz parte de sua carteira.');
+                }
+            }    
+        }
+    }
+    
+    public static void mapeamentoRealizado(List<Account> listAcc){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            
+            Double qtdCampos = 58;
+        try{
+            for(Account campo : listAcc){
+                String id = campo.Id;
+                Double camposMarcados = Toolkit.getMapeamentoRealizado(id);
+
+                double totalCampos = (camposMarcados / qtdCampos) *100;
+                campo.Mapeamento__c = totalCampos;
+
+                System.debug('Total Mapeado: ' + totalCampos);
+            }
+            
+
+        } catch ( Exception ex){
+            System.debug('Erro : ' + ex.getMessage());
+            System.debug('Motivo: ' + ex.getCause());
+            System.debug('Linha : ' + ex.getLineNumber());
+        }
+        }
+    }   
+
+    
+
+    public static void atualizaStatusConta(List<Account> listAcc){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+
+            map<id, User> mapUsers = new map<id, User>();
+            for(User user : [SELECT Id, Area_de_Atuacao__c FROM User WHERE isActive = true]){
+                mapUsers.put(user.Id, user);
+            }
+            Account newAcc = listAcc[0];
+           
+        try{
+            if(newAcc.Classificacao_Cliente__c == 'Sem Consumo' && mapUsers.get(newAcc.OwnerId).Area_de_Atuacao__c == 'BDR'){
+
+                newAcc.Etapa_Comercial__c = 'BDR';
+                newAcc.Qualifica_o_da_Conta__c = '';
+
+                    List<Opportunity> listOpp1 = [SELECT Id FROM Opportunity WHERE AccountId =: newAcc.Id];
+
+                    if(listOpp1.size() <= 0 ){
+                        newAcc.Qualifica_o_da_Conta__c = 'Qualificado SEM Oportunidade';
+
+                    } else {
+
+                        List<Opportunity> listOpp2 = [SELECT Id FROM Opportunity WHERE AccountId =: newAcc.Id
+                                                                                    AND isWon = false
+                                                                                    AND IsClosed = false];
+                        if(listOpp2 != null && listOpp2.size() > 0){
+                            newAcc.Qualifica_o_da_Conta__c = 'Qualificado COM Oportunidade';
+                        } 
+                    }                                                
+
+            } else if(newAcc.Classificacao_Cliente__c == 'Sem Consumo' && mapUsers.get(newAcc.OwnerId).Area_de_Atuacao__c == 'Vendedor'){
+
+                newAcc.Etapa_Comercial__c = 'VENDAS';
+                newAcc.Qualifica_o_da_Conta__c = '';
+
+                List<Opportunity> listOpp3 = [SELECT Id FROM Opportunity WHERE AccountId =: newAcc.Id
+                                                                             AND isWon = false
+                                                                             AND IsClosed = false];
+                if(listOpp3 != null && listOpp3.size() > 0){
+				    newAcc.Qualifica_o_da_Conta__c = 'Em Negociação';
+
+                } else {
+
+                    List<Opportunity> listOpp4 = [SELECT Id, StageName FROM Opportunity WHERE AccountId =: newAcc.Id
+                                                                              AND StageName = 'Negócio Perdido'
+                                                                              AND isWon = false
+                                                                              AND IsClosed = true];
+                    if(listOpp4 != null && listOpp4.size() > 0){
+                        newAcc.Qualifica_o_da_Conta__c = 'Negócio Perdido'; 
+                    } else{
+                        newAcc.Qualifica_o_da_Conta__c = 'Em desenvolvimento';
+                    }                                                      
+                }                                                         
+            } else if(newAcc.Classificacao_Cliente__c == 'Sem Consumo' && mapUsers.get(newAcc.OwnerId).Area_de_Atuacao__c == 'SDR'){
+
+                newAcc.Etapa_Comercial__c = 'SDR';
+                newAcc.Qualifica_o_da_Conta__c = '';
+                List<Opportunity> listOpp5 = [SELECT Id FROM Opportunity WHERE AccountId = :newAcc.Id
+                                                                            AND isWon = false
+                                                                            AND IsClosed = false];
+                   if(listOpp5 != null && listOpp5.size() > 0){
+                       newAcc.Qualifica_o_da_Conta__c = 'Prospecção Farmer';
+                    } else {                                                            
+
+                        List<Opportunity> listOpp = [SELECT Id FROM Opportunity WHERE AccountId = :newAcc.Id
+                                                                                AND isWon = false
+                                                                                AND StageName = 'Negócio Perdido'];
+                        if(listOpp != null && listOpp.size() > 0){
+                            newAcc.Qualifica_o_da_Conta__c = 'Prospecção Farmer';
+                        } else {                                                    
+
+                            List<Event> listEvent = [SELECT Id FROM Event WHERE WhatId =: newAcc.Id];
+                                if(listEvent != null && listEvent.size() > 0 ){
+                                    newAcc.Qualifica_o_da_Conta__c = 'Prospecção Farmer';
+                                } else {
+
+                                    List<AccountContactRelation> listCont = [SELECT Id FROM AccountContactRelation WHERE AccountId =: newAcc.Id
+                                                                                                AND ContactId != null];
+                                    if(listCont != null && listCont.size() > 0 && listOpp5.size() <= 0 && listOpp.size() <= 0){
+                                        newAcc.Qualifica_o_da_Conta__c = 'Prospecção Hunter';
+
+                                    } else {
+                                    newAcc.Qualifica_o_da_Conta__c = 'Gerar Novos Leads';
+                                }
+                            }
+                        } 
+                    }      
+            }
+            } catch ( Exception ex){
+                System.debug('Erro : ' + ex.getMessage());
+                System.debug('Motivo: ' + ex.getCause());
+                System.debug('Linha : ' + ex.getLineNumber());
+            }
+        }
+    }
+
+    public static void blockAlterarNomeConta(List<Account> listAcc, List<Account> listOldAcc){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            Account newAcc = listAcc[0];
+            Account oldAcc = listOldAcc[0];
+
+            try{
+                if(newAcc.Razao_Social__c != oldAcc.Razao_Social__c && oldAcc.CNPJ__C != null){
+                    newAcc.addError('[ERROR] Não é possível alterar a razão social depois de já ter cadastrado o CNPJ. Consulte os dados na receita federal');
+                }
+                
+                if(newAcc.Name != oldAcc.Name && oldAcc.CNPJ__C != null){
+                    newAcc.addError('[ERROR] Não é possível alterar o nome da conta depois de já ter cadastrado o CNPJ. Consulte os dados na receita federal');
+                }
+
+            } catch ( Exception ex){
+                System.debug('Erro : ' + ex.getMessage());
+                System.debug('Motivo: ' + ex.getCause());
+                System.debug('Linha : ' + ex.getLineNumber());
+            }
+        }
+    }
+
+    
+    public static void ajustarDependenciaConta(List<Account> listNewAcc, List<Account> listOldAcc){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            Account newAcc = listNewAcc[0];
+            Account oldAcc = listOldAcc[0];
+
+                try{
+                    if(oldAcc.Classificacao_Cliente__c == 'Sem Consumo'){
+
+                     if(newAcc.Classificacao_Cliente__c == 'Corporate' || newAcc.Classificacao_Cliente__c == 'Enterprise' || newAcc.Classificacao_Cliente__c == 'Key Account'){
+                         newAcc.Etapa_Comercial__c = null;
+                         newAcc.Qualifica_o_da_Conta__c = null;
+                        }
+                    } else if(oldAcc.Classificacao_Cliente__c == 'Sem Perfil'){
+                        if(newAcc.Classificacao_Cliente__c == 'Corporate' || newAcc.Classificacao_Cliente__c == 'Enterprise' || newAcc.Classificacao_Cliente__c == 'Key Account'){
+                            newAcc.Motivo_sem_Perfil__c = null;
+                        }
+                    }
+                } catch ( Exception ex){
+                    System.debug('Erro : ' + ex.getMessage());
+                    System.debug('Motivo: ' + ex.getCause());
+                    System.debug('Linha : ' + ex.getLineNumber());
+                }
+        }
+    }
+
+
+}
