@@ -1,0 +1,63 @@
+global class BatchMapeamentoFormulario implements Database.Batchable<sObject>, Database.Stateful, Schedulable {
+    
+    String query;
+	List<String> listError;
+	List<Account> listContas;
+    
+    
+
+    global BatchMapeamentoFormulario() {
+		listError = new List<String>();
+		
+
+	}
+	
+	global Database.QueryLocator start(Database.BatchableContext BC) {
+				query = 'SELECT Id, Name, Mapeamento__c' + ' FROM Account';
+					
+                
+		return Database.getQueryLocator(query);
+	}
+
+   	global void execute(Database.BatchableContext BC, List<sObject> scope) {
+		List<Account> listAcc = (List<Account>) scope;
+        Double qtdCampos = 58;
+        for(Account campo : listAcc){
+            String id = campo.Id;
+            Double camposMarcados = Toolkit.getMapeamentoRealizado(id);
+
+            double totalCampos = (camposMarcados / qtdCampos) *100;
+            campo.Mapeamento__c = totalCampos;
+
+            System.debug('Total Mapeado: ' + totalCampos);
+        }
+    
+		TriggerHandlerConta.ignoreTrigger = true;
+		Toolkit.ignoraRegraValidacao(true);
+		Database.SaveResult[] sr = Database.update(listAcc, false);
+		TriggerHandlerConta.ignoreTrigger = false;
+		Toolkit.ignoraRegraValidacao(false);
+
+		for(Database.SaveResult s : sr){
+			if(!s.isSuccess()){
+				listError.add(String.valueOf(s.getErrors()));
+			}
+		}
+
+        if(listError != null && listError.size() > 0){
+            System.debug('OCORREU ERRO: ' + listError);
+        }
+
+	}
+
+
+	global void finish(Database.BatchableContext BC) {
+
+	}
+
+	global void execute(SchedulableContext sc) {
+		Database.executeBatch( new BatchMapeamentoFormulario(), 5 );
+	}  
+
+
+}
