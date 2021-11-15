@@ -1,0 +1,311 @@
+public without sharing class Toolkit {
+	
+	public Toolkit() {
+		System.debug(' >> Toolkit iniciado');
+	}
+
+    /**
+     * ***********************************************************************************
+     */
+
+    public static Integer getOportunidadesLeadPerdida(List<String> leadOppId, Date dataInicio, Date dataFinal ){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Opportunity
+                    WHERE  Id IN : leadOppId
+                    AND Data_do_Negocio_Perdido__c >= :dataInicio
+                    AND Data_do_Negocio_Perdido__c <= : dataFinal];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+    public static Integer getOportunidadesLeadFechadas(List<String> leadOppId, Date dataInicio, Date dataFinal ){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Opportunity
+                    WHERE  Id IN : leadOppId
+                    AND Data_do_Neg_cio_Fechado_F__c >= :dataInicio
+                    AND Data_do_Neg_cio_Fechado_F__c <= : dataFinal];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+    public static Integer getLeadsNoFunil(){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Lead
+                    WHERE  (ConvertedDate = null
+                    AND Data_de_Perda__c = null)];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+    public static Integer getLeadsCriados(Date dataInicio, Date dataFinal ){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Lead
+                    WHERE  DAY_ONLY(CreatedDate) >= :dataInicio
+                    AND DAY_ONLY(CreatedDate) <= :dataFinal];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+    public static Integer getLeadsPerdidos(Date dataInicio, Date dataFinal ){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Lead
+                    WHERE  Data_de_perda__c >= :dataInicio
+                    AND Data_de_perda__c <= :dataFinal];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+    public static Integer getLeadsConvertidos(Date dataInicio, Date dataFinal ){
+        List<AggregateResult> ars;
+        Integer resultado = 0;
+
+        ars = [SELECT count(Id) total FROM Lead
+                    WHERE ConvertedDate >= :dataInicio
+                    AND ConvertedDate <= :dataFinal];
+    	
+		if (ars.size() > 0 && ars.get(0).get('total') != null){
+			resultado = (Integer) ars.get(0).get('total');
+        }
+
+        return resultado;
+    }
+
+     /**
+     * ***********************************************************************************
+     */
+
+    public static Double getMapeamentoRealizado(String recordId){
+        Double quantidade = 0;
+
+        List<Account> listAc = [SELECT Id, N_mero_de_Unidades__c, N_mero_de_Unidadesfranquias__c, Capilaridade__c, Onde_as_unidades_est_o_concentradas__c, Website, Industry, Faturamento_Anual__c, Proje_o_de_Investimento_em_TI__c, Estimativa_de_Colaborades_em_HomeOffice__c, Noticias_Recentes__c, SDR_responsavel_pelo_agendamento__c, BDR_da_Conta__c,	 Entrada_por_Inova_o__c,
+        Homologa_o_em_Compras__c, Data_da_Homologa_o_em_Compras__c,	 Data_do_primeiro_compromisso_realizado__c, Data_do_Ultimo_Compromisso__c, Data_da_primeira_Oportunidade_Aberta__c, Possui_Oportunidade_Aberta__c, Anota_es_Gerais_Pr_Vendas__c, Obje_es_Apresentadas__c, Contorno_das_Obje_es__c, Modelo_de_contrata_o_mais_indicado__c, Potencial_de_Faturamento__c, Classificacao_Potencial__c, 
+        Concorrente_Interno__c, Potencial_de_Tickets__c, Potencial_Chamados_Remoto__c, Potencial_de_Chamados_HomeOffice__c, Quais_s_o_as_principais_demandas__c,	 Desafios_em_Field_Service__c, Prioridades_Atuais__c, Dura_o_do_Atendimento__c, Idade_do_Parque_TI__c, Estimativa_de_Dispositivos_por_Unidade2__c, Estimativa_Tamanho_do_Parque__c, Fornecedor_Atual__c, Modelagem_Comercial_Terceirizada__c,
+        Chamados_Excedentes_s_o_atendidos_por__c, Principais_Dores_Identificadas__c, Vencimento_do_Contrato_1__c, Vencimento_do_Contrato_2__c, Service_Desk_e_Field_s_o_atendidos_pela__c, Regi_o_de_Excassez__c, SLA_Atual__c, Busca_por_Novos_Parceiros__c, Tamanho_Equipe_T_cnica_Atual__c, Estimativa_Di_ria_de_Atendimento_por_cad__c, Log_stica_entre_Equipe_T_cnica_x_Unidade__c,
+        X6_1_Qual_foi_o_ltimo_projeto_realizado__c, Previs_o_de_In_cio_do_Projeto__c, Projetos_Realizados_no_Ano__c, Anota_es_Gerais_Projetos__c,
+        Previs_o_de_RFP__c,	Escopo_RFP__c, Anota_es_Gerais_RFP__c, Principais_Dores_Identificadas_2__c, Principais_Dores_Identificada_3__c FROM Account WHERE Id = : recordId];
+        for(Account campo: listAc){
+            if(campo.N_mero_de_Unidades__c != null || campo.N_mero_de_Unidades__c > 0){
+                quantidade++;
+            }
+            if(campo.N_mero_de_Unidadesfranquias__c != null || campo.N_mero_de_Unidadesfranquias__c > 0){
+                quantidade++;
+            }
+            if(campo.Capilaridade__c != null){
+                quantidade++;
+            }
+            if(campo.Onde_as_unidades_est_o_concentradas__c != null){
+                quantidade++;
+            }
+            if(campo.Website != null){
+                quantidade++;
+            }
+            if(campo.Industry != null){
+                quantidade++;
+            }
+            if(campo.Faturamento_Anual__c != null || campo.Faturamento_Anual__c > 0){
+                quantidade++;
+            }
+            if(campo.Proje_o_de_Investimento_em_TI__c != null || campo.Proje_o_de_Investimento_em_TI__c > 0){
+                quantidade++;
+            }
+            if(campo.Estimativa_de_Colaborades_em_HomeOffice__c != null || campo.Estimativa_de_Colaborades_em_HomeOffice__c > 0){
+                quantidade++;
+            }
+            if(campo.Noticias_Recentes__c != null){
+                quantidade++;
+            }
+            if(campo.SDR_responsavel_pelo_agendamento__c != null){
+                quantidade++;
+            }
+            if(campo.BDR_da_Conta__c != null){
+                quantidade++;
+            }
+            if(campo.Entrada_por_Inova_o__c != null){
+                quantidade++;
+            }
+            if(campo.Homologa_o_em_Compras__c != null){
+                quantidade++;
+            }
+            if(campo.Data_da_Homologa_o_em_Compras__c != null){
+                quantidade++;
+            }
+            if(campo.Data_do_primeiro_compromisso_realizado__c != null){
+                quantidade++;
+            }
+            if(campo.Data_do_Ultimo_Compromisso__c != null){
+                quantidade++;
+            }
+            if(campo.Data_da_primeira_Oportunidade_Aberta__c != null){
+                quantidade++;
+            }
+            if(campo.Possui_Oportunidade_Aberta__c != null){
+                quantidade++;
+            }
+            if(campo.Anota_es_Gerais_Pr_Vendas__c != null){
+                quantidade++;
+            }
+            if(campo.Obje_es_Apresentadas__c != null){
+                quantidade++;
+            }
+            if(campo.Contorno_das_Obje_es__c != null){
+                quantidade++;
+            }
+            if(campo.Modelo_de_contrata_o_mais_indicado__c != null){
+                quantidade++;
+            }
+            if(campo.Potencial_de_Faturamento__c != null || campo.Potencial_de_Faturamento__c > 0){
+                quantidade++;
+            }
+            if(campo.Classificacao_Potencial__c != null){
+                quantidade++;
+            }
+            if(campo.Concorrente_Interno__c != null){
+                quantidade++;
+            }
+            if(campo.Potencial_de_Tickets__c != null || campo.Potencial_de_Tickets__c > 0){
+                quantidade++;
+            }
+            if(campo.Potencial_Chamados_Remoto__c != null || campo.Potencial_Chamados_Remoto__c > 0){
+                quantidade++;
+            }
+            if(campo.Potencial_de_Chamados_HomeOffice__c != null || campo.Potencial_de_Chamados_HomeOffice__c > 0){
+                quantidade++;
+            }
+            if(campo.Quais_s_o_as_principais_demandas__c != null){
+                quantidade++;
+            }
+            if(campo.Desafios_em_Field_Service__c != null){
+                quantidade++;
+            }
+            if(campo.Prioridades_Atuais__c != null){
+                quantidade++;
+            }
+            if(campo.Dura_o_do_Atendimento__c != null){
+                quantidade++;
+            }
+            if(campo.Idade_do_Parque_TI__c != null){
+                quantidade++;
+            }
+            if(campo.Estimativa_de_Dispositivos_por_Unidade2__c != null || campo.Estimativa_de_Dispositivos_por_Unidade2__c > 0){
+                quantidade++;
+            }
+            if(campo.Estimativa_Tamanho_do_Parque__c != null || campo.Estimativa_Tamanho_do_Parque__c > 0){
+                quantidade++;
+            }
+            if(campo.Fornecedor_Atual__c != null){
+                quantidade++;
+            }
+            if(campo.Modelagem_Comercial_Terceirizada__c != null){
+                quantidade++;
+            }
+            if(campo.Chamados_Excedentes_s_o_atendidos_por__c != null){
+                quantidade++;
+            }
+            if(campo.Principais_Dores_Identificadas__c != null){
+                quantidade++;
+            }
+            if(campo.Vencimento_do_Contrato_1__c != null){
+                quantidade++;
+            }
+            if(campo.Vencimento_do_Contrato_2__c != null){
+                quantidade++;
+            }
+            if(campo.Service_Desk_e_Field_s_o_atendidos_pela__c != null){
+                quantidade++;
+            }
+            if(campo.Regi_o_de_Excassez__c != null){
+                quantidade++;
+            }
+            if(campo.SLA_Atual__c != null){
+                quantidade++;
+            }
+            if(campo.Busca_por_Novos_Parceiros__c != null){
+                quantidade++;
+            }
+            if(campo.Tamanho_Equipe_T_cnica_Atual__c != null || campo.Tamanho_Equipe_T_cnica_Atual__c > 0){
+                quantidade++;
+            }
+            if(campo.Estimativa_Di_ria_de_Atendimento_por_cad__c != null || campo.Estimativa_Di_ria_de_Atendimento_por_cad__c > 0){
+                quantidade++;
+            }
+            if(campo.Log_stica_entre_Equipe_T_cnica_x_Unidade__c != null){
+                quantidade++;
+            }
+            if(campo.X6_1_Qual_foi_o_ltimo_projeto_realizado__c != null){
+                quantidade++;
+            }
+            if(campo.Previs_o_de_In_cio_do_Projeto__c != null){
+                quantidade++;
+            }
+            if(campo.Projetos_Realizados_no_Ano__c != null){
+                quantidade++;
+            }
+            if(campo.Anota_es_Gerais_Projetos__c != null){
+                quantidade++;
+            }
+            if(campo.Previs_o_de_RFP__c != null){
+                quantidade++;
+            }
+            if(campo.Escopo_RFP__c != null){
+                quantidade++;
+            }
+            if(campo.Anota_es_Gerais_RFP__c != null){
+                quantidade++;
+            }
+            if(campo.Principais_Dores_Identificadas_2__c != null){
+                quantidade++;
+            }
+            if(campo.Principais_Dores_Identificada_3__c != null){
+                quantidade++;
+            }
+        }
+        System.debug('Quantidade : ' + quantidade);
+
+        return quantidade;
+
+        
+    }
+
+
+    /**
+    * @return String
+    * método que remove os caracteres do CNPJ
+    */
+	public static String removerCaracteres(String cgc){
+        cgc = cgc.replaceAll('/', '');
+        cgc = cgc.replaceAll(',', '');
+        cgc = cgc.replaceAll('-', '');
+        cgc = cgc.replaceAll('\\.', '');
+        return cgc;
+    }
+   }
