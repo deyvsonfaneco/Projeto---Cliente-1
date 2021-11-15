@@ -1,0 +1,68 @@
+global class BatchFunilLead implements Database.Batchable<sObject>, Database.AllowsCallouts, Database.Stateful, Schedulable {
+
+    String query;
+    public Date dataReferencia { get; set; }
+	
+	global BatchFunilLead() {
+		
+    }
+	
+	global Database.QueryLocator start(Database.BatchableContext BC) {
+        query = 'SELECT Id, ConvertedOpportunityId, CreatedDate, ConvertedDate, Data_de_Perda__c FROM Lead WHERE ConvertedOpportunityId != null AND ConvertedDate = THIS_MONTH';
+            
+        if(dataReferencia == null){
+            dataReferencia = System.today();
+        }
+            
+		return Database.getQueryLocator(query);
+	}
+
+   	global void execute(Database.BatchableContext BC, List<sObject> scope) {
+        List<Lead> listLead = (List<Lead>) scope;
+        List<Funil_Lead__c> listFunil = new List<Funil_Lead__c>();
+        List<String> listOppId = new List<String>();
+        
+        for(Lead lead : listLead){
+            listOppId.add(lead.ConvertedOpportunityId);
+        }       
+        
+        System.debug(listOppId);
+        try{
+            Date dataInicio = Date.newInstance(dataReferencia.year(), dataReferencia.month(), 1);
+            Date dataFinal = dataReferencia;
+            
+            Funil_Lead__c novoFunil = new Funil_Lead__c();
+            
+            novoFunil.Leads_Convertidos__c = Toolkit.getLeadsConvertidos( dataInicio, dataFinal);
+            novoFunil.Leads_perdidos__c = Toolkit.getLeadsPerdidos( dataInicio, dataFinal);
+            novoFunil.Leads_Recebidos__c = Toolkit.getLeadsCriados(dataInicio, dataFinal);
+            novoFunil.Leads_no_Funil__c = Toolkit.getLeadsNoFunil();
+            novoFunil.Oportunidade_do_Lead_Perdida__c = Toolkit.getOportunidadesLeadPerdida(listOppId, dataInicio, dataFinal);
+            novoFunil.Oportunidade_do_Lead_Fechado__c = Toolkit.getOportunidadesLeadFechadas(listOppId, dataInicio, dataFinal);
+            novoFunil.Data_de_refer_ncia__c = dataReferencia;
+            novoFunil.Id_Externo__c = String.valueof(dataReferencia.Month()) + '-' + String.valueOf(dataReferencia.year()) ;
+            listFunil.add( novoFunil );
+            
+            System.debug(listFunil);
+            
+            Database.upsert(listFunil, Funil_Lead__c.Id_Externo__c, false);
+            
+        } catch(Exception ex){
+            System.debug('Erro: ' + ex.getCause());
+            System.debug('Mensagem: ' + ex.getMessage());
+            System.debug('Linha: ' + ex.getLineNumber());
+        }
+
+
+	}
+	
+	global void finish(Database.BatchableContext BC) {
+		
+	}
+
+	global void execute(SchedulableContext sc) {
+		BatchFunilLead b = new BatchFunilLead();
+        Database.executebatch(b);
+        
+    }
+}
