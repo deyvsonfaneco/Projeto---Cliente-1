@@ -1,0 +1,62 @@
+public class TriggerHandlerEvento {
+
+    public static Boolean ignoreTrigger { get;set; }
+
+    public TriggerHandlerEvento() {
+
+    }
+    public static void blockVendedor(List<Event> listEvent){
+        if (ignoreTrigger == null || ignoreTrigger == false) {
+            Event newEvent = listEvent[0];
+            Map<Id, User> mapUsers = new Map<Id, User>();
+			for(User users : [SELECT Id, FirstName, LastName, Area_de_Atuacao__c, IsAdmin__c FROM User WHERE isActive = true 
+																										AND Area_de_Atuacao__c = 'Vendedor'
+																										AND IsAdmin__c = false]){
+			 mapUsers.put(users.Id, users);
+			}
+            if(mapUsers.get(UserInfo.getUserId()) != null && mapUsers.get( UserInfo.getUserId() ).Area_de_Atuacao__c == 'Vendedor'){
+
+                List<Account> listAcc = [SELECT Id, OwnerId FROM Account 
+                                                            WHERE Id = : newEvent.WhatId
+                                                            AND OwnerId != : UserInfo.getUserId()];
+                if(listAcc != null && listAcc.size() > 0){
+                    newEvent.addError('[ERRO] Você só tem permissão para iniciar novos compromissos em contas de sua carteira.');
+                }
+            }   
+        }
+    }
+
+
+    public static void dataProximaReuniao(List<Event> listEvent){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            Event newEvent = listEvent[0];
+            List<Account> listUpAcc = new List<Account>();
+
+            List<Account> listAcc = [SELECT Id, Name, Data_da_pr_xima_reuni_o__c FROM Account WHERE Id = : newEvent.WhatId];
+            for(Account acc : listAcc){
+                if(acc.Data_da_pr_xima_reuni_o__c < newEvent.StartDateTime || acc.Data_da_pr_xima_reuni_o__c == null){
+                    acc.Data_da_pr_xima_reuni_o__c = newEvent.StartDateTime;
+                    listUpAcc.add(acc);
+                }  
+            }
+            Database.update(listUpAcc, false);
+        }
+    }
+
+    public static void travarAlteracaoData(List<Event> listNewEvent, List<Event> listOldEvent){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            User usuario = [SELECT Id, Name, IsAdmin__c FROM User WHERE Id = :UserInfo.getUserId()];
+
+            Event newEvent = listNewEvent[0];
+            Event oldEvent = listOldEvent[0];  
+                
+            if(newEvent.ActivityDate != oldEvent.ActivityDate || 
+                newEvent.EndDate != oldEvent.EndDate){
+                    
+                if(!usuario.isAdmin__c){
+                    newEvent.addError('[ERRO] Você não tem permissão para alterar a data de um compromisso criado.');
+                }
+            }
+        }
+    }
+  } 
