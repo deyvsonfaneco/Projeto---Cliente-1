@@ -22,14 +22,14 @@ public class TriggerHandlerOportunidade {
 				if(listOpp1 != null && listOpp1.size() > 0){
 					naoNotificar = true;	
 					
-				} else if(newOpp.Produto_FindUP__c != 'Piloto FindUp' && newOpp.StageName == 'Negócio Fechado'){
+				} else if(newOpp.Produto_FindUP__c != 'Piloto' && newOpp.StageName == 'Negócio Fechado'){
 							List<Opportunity> listOpp = [SELECT Id FROM Opportunity 
 																	WHERE AccountId = : newOpp.AccountId
 																	AND Id != : newOpp.Id
 																	AND Atividade_SDR__c = 'Sim'
 																	AND isClosed = true
 																	AND isWon = true
-																	AND Produto_FindUP__c = 'Piloto FindUP'];																
+																	AND Produto_FindUP__c = 'Piloto'];																
 																	
 						if(listOpp != null && listOpp.size() > 0){
 							newOpp.Possui_pr_venda_piloto__c = true;
