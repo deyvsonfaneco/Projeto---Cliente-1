@@ -1,0 +1,45 @@
+public class TriggerHandlerLead {
+
+    public static Boolean ignoreTrigger {get;set;}
+
+    private TriggerHandlerLead() { }
+
+    public static void atribuicaoLeadBDR(List<Lead> listNewLead){
+        Lead newLead = listNewLead[0];
+        List<User> listUser = [SELECT Id, FirstName, LastName, Area_de_Atuacao__c, IsAdmin__c FROM User WHERE isActive = true
+                                                                                           AND Area_de_Atuacao__c = 'BDR'];
+        
+     try{                                                                                   
+        for(User users : listUser ){
+            if(newLead.LeadSource != null && newLead.LeadSource.CONTAINS('RD Station')){
+                newLead.OwnerId = users.Id;
+                newLead.Notificar_recebimento_do_Lead_ao_BDR__c = true;
+            }
+        }
+        } catch(Exception ex){
+            System.debug('Erro: ' + ex.getMessage());
+            System.debug('Motivo: ' + ex.getCause());
+            System.debug('Linha: ' + ex.getLineNumber());
+        }    
+    }
+
+    public static void validarOrigemLP(List<Lead> listNewLead, List<Lead> listOldLead){
+        if(ignoreTrigger == null || ignoreTrigger == false){
+            Lead newLead = listNewLead[0];
+            Lead oldLead = listOldLead[0];
+
+        try{
+            if(newLead.LeadSource != oldLead.LeadSource){
+                if(oldLead.LeadSource.CONTAINS('RD Station') && oldLead.Origem_RD_Detalhe_LP__c == null){
+                    newLead.Origem_RD_Detalhe_LP__c = oldLead.LeadSource;
+                }
+            } 
+            } catch(Exception ex){
+                System.debug('Erro: ' + ex.getMessage());
+                System.debug('Motivo: ' + ex.getCause());
+                System.debug('Linha: ' + ex.getLineNumber());
+            }
+        } 
+    }   
+    
+}
