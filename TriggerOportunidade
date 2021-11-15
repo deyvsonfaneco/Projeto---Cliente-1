@@ -1,0 +1,28 @@
+trigger TriggerOportunidade on Opportunity ( before insert, before update, before delete, after insert, after update, after delete, after undelete ) {
+
+		if (Trigger.isBefore) {
+	    	if(Trigger.isInsert){
+				TriggerHandlerOportunidade.naoCriarOpp( Trigger.new );
+				TriggerHandlerOportunidade.bloquearCriarOppVendedor( Trigger.new);
+				TriggerHandlerOportunidade.validarOrigemLead( Trigger.new);
+				TriggerHandlerOportunidade.validarFeelingInsert( Trigger.new);
+        
+				
+	    	} else if(Trigger.isUpdate){
+				TriggerHandlerOportunidade.bloquearVendedor( Trigger.new , Trigger.old );
+				TriggerHandlerOportunidade.atuDataContrato( Trigger.new );
+				TriggerHandlerOportunidade.oportunidadeRejeitadaBDR( Trigger.new);
+				TriggerHandlerOportunidade.validarFeelingComercial( Trigger.new, Trigger.old);
+				TriggerHandlerOportunidade.validarOrigemLead( Trigger.new);
+				TriggerHandlerOportunidade.notificarComissaoSDR(Trigger.new, Trigger.old);				
+
+
+	    	}
+	    
+		} else if (Trigger.isAfter) {
+			if(Trigger.isUpdate){				
+				TriggerHandlerOportunidade.aprovarOportunidade( Trigger.new, Trigger.old );	
+				TriggerHandlerOportunidade.atualizarStatusConta(Trigger.new, Trigger.old);				
+			}
+	   }	     
+}
