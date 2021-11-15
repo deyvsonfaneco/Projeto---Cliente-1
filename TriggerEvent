@@ -1,0 +1,17 @@
+trigger TriggerEvent on Event (before update, before delete, before insert, after update) {
+    /**
+     * Trigger antes da atualização.
+     */
+    if(Trigger.isBefore && Trigger.isUpdate){
+        TriggerHandlerEvento.travarAlteracaoData(Trigger.new, Trigger.old);
+
+    /**
+     * Trigger antes da inserção
+     */
+    } else if(Trigger.isBefore && Trigger.isInsert){
+        TriggerHandlerEvento.dataProximaReuniao(Trigger.new);
+       // TriggerHandlerEvento.blockVendedor(Trigger.new);
+
+    }
+
+}
