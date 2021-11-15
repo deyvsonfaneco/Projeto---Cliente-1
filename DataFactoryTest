@@ -1,0 +1,21 @@
+@isTest(SeeAllData=false)
+public class DataFactoryTest {
+
+
+    @isTest
+    public static invocableConsultarCNJP.BuscarCNPJ gerarMockBuscarCNPJLightning() {
+      invocableConsultarCNJP.BuscarCNPJ result = new invocableConsultarCNJP.BuscarCNPJ();
+      result.telefone = '(81) 4042-2026';
+      result.bairro = 'RECIFE';
+      result.cep = '50.030-030';
+      result.complemento = 'LOJA 0401 SHOPPING PACO ALFANDEGA CXPST 081';
+      result.email = 'financeiro@findup.com.br';
+      result.fantasia = 'FINDUP';
+      result.logradouro = 'R ALFANDEGA';
+      result.municipio = 'RECIFE';
+      result.nome = 'FINDUP TECNOLOGIA EM SISTEMAS LTDA';
+      result.numero = '35';
+      result.uf = 'PE';
+      return result;
+    }
+ }
