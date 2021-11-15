@@ -1,0 +1,98 @@
+public class  invocableConsultarCNJP {
+
+
+     /**
+    * Classes de Objeto para complementar os métodos
+    */
+    public class BuscarCNPJ {
+        public String telefone { get; set; }
+        public String nome { get; set; }
+        public String fantasia { get; set; }
+        public String logradouro { get; set; }
+        public String numero { get; set; }
+        public String complemento { get; set; }
+        public String cep { get; set; }
+        public String bairro { get; set; }
+        public String municipio { get; set; }
+        public String uf { get; set; }
+        public String email { get; set; }
+    }
+    public invocableConsultarCNJP() {
+
+    }
+    
+    @InvocableMethod
+    public static void auxilioFuture(List<String> recordId) {
+		if(System.isBatch() == false && System.isFuture() == false){
+        invocableConsultarCNJP.buscaCNPJ(recordId);
+        }
+    }
+    /**
+     * @return String
+     * 
+     */
+
+    @future(callout=true)
+    public static void buscaCNPJ(List<String> recordId) {
+
+
+        System.debug('Retorno RECORDID: ' + recordId);
+        Account conta = [SELECT Id, Name, Nome_Fantasia__c, Razao_Social__c, Logradouro__c, Numero_Logradouro__c, Complemento__c, Bairro__c, Cidade__c, 
+                            Estado__c, CEP__c, Email_Financeiro__c, Telefone__c, CNPJ__c FROM Account WHERE Id = : recordId];
+
+
+        String cnpj = Toolkit.removerCaracteres(conta.CNPJ__c);
+        String endpoint = 'http://receitaws.com.br/v1/cnpj/'+cnpj;
+
+        Http h = new Http();
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(endpoint);
+        req.setMethod('GET');
+        req.setTimeout(2 * 60 * 1000);
+
+        HttpResponse res = null;
+        BuscarCNPJ requisicao;
+
+        if (!Test.isRunningTest()) {
+            res = h.send(req);
+            if(res.getStatusCode() == 200){
+                requisicao = (BuscarCNPJ) JSON.deserialize(res.getBody(), BuscarCNPJ.class);
+            } 
+        } else {
+            res = new HttpResponse();
+            res.setStatusCode(200);
+            requisicao = DataFactoryTest.gerarMockBuscarCNPJLightning();
+        }
+     try{
+        //res.setHeader('Content-Type','text/html; charset=UTF8');
+        if (res.getStatusCode() == 200) {
+            
+            conta.Nome_Fantasia__c      = requisicao.fantasia;
+            conta.Razao_Social__c       = requisicao.nome;
+            conta.Name                  = requisicao.nome;
+            conta.Logradouro__c         = requisicao.logradouro;
+            conta.Numero_Logradouro__c  = requisicao.numero;
+            conta.Complemento__c        = requisicao.complemento;
+            conta.Bairro__c             = requisicao.bairro;
+            conta.Cidade__c             = requisicao.municipio;
+            conta.Estado__c             = requisicao.uf;
+            conta.CEP__c                = requisicao.cep;
+            conta.Email_Financeiro__c   = requisicao.email;
+            conta.Telefone__c           = requisicao.telefone;
+
+            TriggerHandlerConta.ignoreTrigger = true;
+            Database.update(conta, false);
+            TriggerHandlerConta.ignoreTrigger = false;
+            
+            if(conta.Razao_Social__c == null){
+                 conta.addError('Falha ao consultar o CNPJ no site da receita. Consulte manualmente em https://receitaws.com.br/');
+            }
+        }
+        } catch (Exception ex) {
+                System.debug('Ocorreu um erro ao utilizar os dados do cliente: cmpControllerAccount');
+                System.debug('Causa: ' + ex.getCause());
+                System.debug('Mensagem: ' + ex.getMessage());
+                System.debug('Linha do erro: ' + ex.getLineNumber());
+        }
+    }
+}
