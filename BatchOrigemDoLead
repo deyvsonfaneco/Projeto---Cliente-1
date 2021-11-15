@@ -1,0 +1,59 @@
+global class BatchOrigemDoLead implements Database.Batchable<sObject>, Database.Stateful, Schedulable  {
+	
+    String query;
+    List<Opportunity> listOpp;
+    List<Account> listAcc;
+	
+	global BatchOrigemDoLead() {
+		listOpp = new List<Opportunity>();
+        listAcc = new List<Account>();
+	}
+	
+	global Database.QueryLocator start(Database.BatchableContext BC) {
+		query = 'SELECT Id, Name, Origem_do_Lead__c (SELECT ID, Name, CloseDate, LeadSource FROM Opportunities WHERE isWon = true AND CloseDate < TODAY ORDER BY CLoseDate ASC LIMIT 1) FROM Account WHERE Origem_do_Lead__c != null AND Classificacao_Cliente__c != \'Sem Consumo\' AND Classificacao_Cliente__c != null';
+		return Database.getQueryLocator(query);
+	}
+
+   	global void execute(Database.BatchableContext BC, List<sObject> scope) {
+        listAcc = (List<Account>) scope;
+        List<Opportunity> listOpps = new List<Opportunity>();
+    try{
+        for(Account acc : listAcc){
+            if(acc.Opportunities != null && acc.Opportunities.size() > 0){
+                
+                listOpp = acc.Opportunities;
+                for(Opportunity opp : listOpp){
+                    if(opp.LeadSource != null && opp.LeadSource == acc.Origem_do_Lead__c){
+                        List<Opportunity> listOps = [SELECT Id, Name, LeadSource FROM Opportunity WHERE AccountId = : acc.Id AND Id != : opp.Id];
+                        for(Opportunity opps : listOps){
+                            opps.LeadSource = acc.Origem_do_Lead__c;
+                            listOpps.add(opps);
+                        }
+                    }      
+                }
+            }
+        }
+        }catch (Exception ex ) {
+          System.debug(ex.getCause());
+          System.debug(ex.getMessage());
+          System.debug(ex.getLineNumber());
+        }
+        if(listOpps != null && listOpps.size() > 0){
+            TriggerHandlerOportunidade.ignoreTrigger = true;
+            Toolkit.ignoraRegraValidacao( TRUE );
+            Database.update(listOpps, false);
+            TriggerHandlerOportunidade.ignoreTrigger = false;
+            Toolkit.ignoraRegraValidacao( FALSE );
+        }
+        
+	}
+	
+	global void finish(Database.BatchableContext BC) {
+
+	}
+
+    global void execute(SchedulableContext sc) {
+		Database.executeBatch( new BatchOrigemDoLead(), 50 );
+	}  
+
+}
