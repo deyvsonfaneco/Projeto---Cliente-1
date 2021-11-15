@@ -1,0 +1,54 @@
+global class BatchHoldingSDR implements Database.Batchable<sObject>, Database.Stateful, Schedulable  {
+	
+    String query;
+    List<Account> listAcc;
+	List<Account> listChild;
+	global BatchHoldingSDR() {
+        listAcc = new List<Account>();
+        listChild = new List<Account>();
+	}
+	
+	global Database.QueryLocator start(Database.BatchableContext BC) {
+		query = 'SELECT Id, Name, Conta_Aberta_por_SDR__c, (SELECT Id, Conta_Aberta_por_SDR__c, SDR_responsavel_pelo_agendamento__c FROM ChildAccounts), SDR_responsavel_pelo_agendamento__c, ParentId FROM Account WHERE ParentId = null';
+		return Database.getQueryLocator(query);
+	}
+
+   	global void execute(Database.BatchableContext BC, List<sObject> scope) {
+        listAcc = (List<Account>) scope;
+
+        List<Account> listUpAcc = new List<Account>();
+
+        for(Account acc : listAcc){
+            if(acc.ChildAccounts != null && acc.ChildAccounts.size() > 0){
+
+                listChild = acc.ChildAccounts;
+                for(Account accChild : listChild){
+                    if(acc.Conta_Aberta_por_SDR__c == true){
+                        accChild.Conta_Aberta_por_SDR__c = true;
+                        accChild.SDR_responsavel_pelo_agendamento__c = acc.SDR_responsavel_pelo_agendamento__c;
+                        listUpAcc.add(accChild);
+                    }
+                }
+            }
+            
+            
+            if(listUpAcc != null && listUpAcc.size() > 0){
+                TriggerHandlerConta.ignoreTrigger = true;
+                Toolkit.ignoraRegraValidacao( TRUE );
+                Database.update(listUpAcc, false);
+                TriggerHandlerConta.ignoreTrigger = false;
+                Toolkit.ignoraRegraValidacao( FALSE );   
+            }   
+        }   
+        
+	}
+	
+	global void finish(Database.BatchableContext BC) {
+
+	}
+
+    global void execute(SchedulableContext sc) {
+		Database.executeBatch( new BatchHoldingSDR(), 30 );
+	}  
+
+}
